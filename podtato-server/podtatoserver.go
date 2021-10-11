@@ -3,17 +3,19 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/cncf/podtato-head/podtato-server/pkg"
 	"strconv"
 	"time"
 
+	"github.com/cncf/podtato-head/podtato-server/pkg"
+
 	"github.com/gorilla/mux"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"html/template"
 	"log"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var podtatoConfiguration *pkg.PodtatoConfig
@@ -37,8 +39,6 @@ var responseTimeHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 	Help:    "Histogram of response time for handler in seconds",
 	Buckets: buckets,
 }, []string{"route", "method", "status_code"})
-
-
 
 // create a handler struct
 type HTTPHandler struct{}
@@ -80,13 +80,16 @@ func (h HTTPHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 	// Slow build
 	if podtatoConfiguration.ServiceVersion == "0.1.2" {
-		time.Sleep(2 * time.Second)
+		time.Sleep(200 * time.Millisecond)
+		go func(msg string) {
+			fmt.Println(msg)
+			time.Sleep(1 * time.Second)
+		}("new goroutine for testing purpose...")
 	}
-
+	status = "success"
 	if err != nil {
 		status = "error"
 	}
-	status = "success"
 }
 
 func prometheusMiddleware(next http.Handler) http.Handler {
@@ -111,11 +114,11 @@ func init() {
 
 func main() {
 	// expecting version as first parameter
-	serviceVersion := flag.String("version","","Service version e.g. 0.1.0")
+	serviceVersion := flag.String("version", "", "Service version e.g. 0.1.0")
 	flag.Parse()
 
 	var err error
-	podtatoConfiguration,err = pkg.GetAssembledPodtatoConfiguration(*serviceVersion)
+	podtatoConfiguration, err = pkg.GetAssembledPodtatoConfiguration(*serviceVersion)
 	if err != nil {
 		log.Fatal(err)
 	}
